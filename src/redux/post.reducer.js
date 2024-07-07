@@ -40,6 +40,14 @@ export const slice = createSlice({
         toast.warn(err, { type: "error" });
       }
     );
+    createAsyncReducer(
+      builder,
+      apis.deletePost,
+      (_state, _action) => null,
+      (err) => {
+        toast.warn(err, { type: "error" });
+      }
+    );
   },
 });
 

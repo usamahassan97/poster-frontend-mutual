@@ -38,16 +38,15 @@ import { FaRegComment, FaWhatsapp } from "react-icons/fa";
 import { BsEmojiSmile, BsFilterLeft, BsThreeDots } from "react-icons/bs";
 import { TiCameraOutline } from "react-icons/ti";
 import { FaPlus } from "react-icons/fa6";
-import { createPost, generateCaption, getPosts } from "../apis/post";
+import { createPost, deletePost, generateCaption, getPosts } from "../apis/post";
 import DatePicker from "react-datepicker";
 import "react-time-picker/dist/TimePicker.css";
 import { useNavigate } from "react-router-dom";
 // import Chip from '@mui/material/Chip';
 // import Stack from '@mui/material/Stack';
-import { Stack, Chip, TextField, IconButton } from '@mui/material';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
-
+import { Stack, Chip, TextField, IconButton } from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 
 const localizer = momentLocalizer(moment);
 
@@ -89,22 +88,22 @@ const Compose = ({ direction, ...args }) => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [titleError, setTitleError] = useState("");
-  const [latestDraftedPost, setLatestDraftedPost] = useState({});
+  const [draftedPosts, setDraftedPosts] = useState({});
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [deleteModalFlag, setDeleteModelFlag] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState(0);
 
+  const fetchDraftedPosts = async () => {
+    const { payload } = await dispatch(getPosts({ status: "draft" }));
+    console.log("payload:", payload);
+    if (payload.success && payload.data?.length) {
+      setDraftedPosts(payload.data);
+    }
+  };
 
   useEffect(() => {
-    const func = async () => {
-      const { payload } = await dispatch(getPosts({ status: "draft" }));
-      console.log("payload:", payload);
-      if (payload.success && payload.data?.length) {
-        setLatestDraftedPost(payload.data?.[0]);
-      }
-    }
-    func();
-  }, [])
-
-
+    fetchDraftedPosts();
+  }, []);
 
   const handleIconClick = () => {
     fileInputRef.current.click();
@@ -154,13 +153,13 @@ const Compose = ({ direction, ...args }) => {
   const toggle = () => setModal(!modal);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [importMediaModal, setImportMediaModal] = useState(false)
+  const [importMediaModal, setImportMediaModal] = useState(false);
 
   const toggleModal = () => setModalOpen(!modalOpen);
 
   const toggleMedia = () => setMediaModal(!mediaModal);
 
-  const toggleImportMedia = () => setImportMediaModal(!importMediaModal)
+  const toggleImportMedia = () => setImportMediaModal(!importMediaModal);
 
   const toggleDropDown = () => setDropdownOpen((prevState) => !prevState);
 
@@ -222,6 +221,7 @@ const Compose = ({ direction, ...args }) => {
         setPost({ desc: "", title: "", hashtags: "" });
         setFiles([]);
         setImageSrc([]);
+        fetchDraftedPosts();
       }
     }
   };
@@ -234,14 +234,50 @@ const Compose = ({ direction, ...args }) => {
     setTooltipOpen(!tooltipOpen);
   };
 
-
-
-  const handleImportMedia = () => {
-
+  const handleImportMedia = () => { };
+  
+  const toggleDeletePostModal = () => {
+    setDeleteModelFlag(!deleteModalFlag);
   }
 
   return (
     <>
+      <Modal
+        isOpen={deleteModalFlag}
+        toggle={toggleDeletePostModal}
+        centered={true}
+        size="md"
+        className="border-0"
+      >
+        <ModalHeader toggle={toggleDeletePostModal}>
+          Delete Drafted Post
+        </ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete this post? It will be removed from
+          your drafts
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="danger"
+            onClick={async () => {
+              if (currentDraftId <= 0) return;
+              const { payload: { success, data } } = await dispatch(deletePost(currentDraftId));
+              if (success) {
+                setDraftedPosts(
+                  draftedPosts?.filter?.((x) => x?.id !== data)
+                );
+                setCurrentDraftId(0);
+                setDeleteModelFlag(false);
+              }
+            }}
+          >
+            Delete
+          </Button>{" "}
+          <Button color="secondary" onClick={toggleDeletePostModal}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
       <div className="overflow-x-hidden">
         <Row>
           <Col md={9} className="p-5">
@@ -384,9 +420,7 @@ const Compose = ({ direction, ...args }) => {
                         target="Heading"
                         toggle={toggleTooltip}
                         placement="top"
-                      >
-
-                      </Tooltip>
+                      ></Tooltip>
                     </div>
                   </div>
                 </div>
@@ -471,22 +505,20 @@ const Compose = ({ direction, ...args }) => {
                           {post.hashtags.split(",").map((hashtag, index) => {
                             return (
                               <>
-                                <div className="hashtags_pin me-2 p-2" key={index}>
+                                <div
+                                  className="hashtags_pin me-2 p-2"
+                                  key={index}
+                                >
                                   <p className="mt-3">{hashtag}</p>
                                 </div>
                               </>
-                            )
+                            );
                           })}
                         </>
                       ) : (
                         ""
                       )}
-
                     </div>
-
-
-
-
 
                     {/* <Input
                       type="text"
@@ -507,27 +539,32 @@ const Compose = ({ direction, ...args }) => {
                   size="xl"
                   className="border-0"
                 >
-
                   <Row>
                     <div className="d-flex justify-content-between p-4">
                       <p className="fs-3 fw-bold">Media Library</p>
-                      <Input type="text" placeholder="search" className="media_search" />
-                      <Dropdown isOpen={dropdownOpen} toggle={toggleDropDown} direction={direction} >
+                      <Input
+                        type="text"
+                        placeholder="search"
+                        className="media_search"
+                      />
+                      <Dropdown
+                        isOpen={dropdownOpen}
+                        toggle={toggleDropDown}
+                        direction={direction}
+                      >
                         <DropdownToggle caret>All</DropdownToggle>
                         <DropdownMenu {...args}>
                           <DropdownItem header>All</DropdownItem>
-                          
                         </DropdownMenu>
                       </Dropdown>
                     </div>
                   </Row>
 
                   <Row className="p-4">
-                    <Col md={5} >
+                    <Col md={5}>
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
-
                     </Col>
                     <Col md={2}>
                       <img src={upload} alt="" className="media_data mt-2" />
@@ -539,7 +576,6 @@ const Compose = ({ direction, ...args }) => {
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                     </Col>
-
                   </Row>
                 </Modal>
 
@@ -552,7 +588,10 @@ const Compose = ({ direction, ...args }) => {
                   <div>
                     <Row className="p-4">
                       <Col md={6} className="d-flex justify-content-center">
-                        <div className="upload_btns_bg" onClick={toggleImportMedia}>
+                        <div
+                          className="upload_btns_bg"
+                          onClick={toggleImportMedia}
+                        >
                           <PiVideo className="fs-4 mb-2" />
                           <div>
                             <p className="text-center">
@@ -623,7 +662,6 @@ const Compose = ({ direction, ...args }) => {
                   </Button>
                 </div>
 
-
                 {/* post modal */}
                 <Modal
                   isOpen={modal}
@@ -655,7 +693,9 @@ const Compose = ({ direction, ...args }) => {
                   </Row>
 
                   <div className="p-4 d-flex justify-content-between">
-                    <Button className="Schedule_btn" onClick={toggleModal}>Schedule</Button>
+                    <Button className="Schedule_btn" onClick={toggleModal}>
+                      Schedule
+                    </Button>
                     <Button
                       className="post_btn_modal"
                       onClick={() =>
@@ -683,52 +723,53 @@ const Compose = ({ direction, ...args }) => {
               </div>
 
               <div className="p-2">
-                {latestDraftedPost?.id && (
-                  <Card className="p-2 border-0 shadow mb-3">
-                    <div className="d-flex justify-content-between">
-                      <div className="d-flex">
-                        <div className="post_logo">
-                          <img src={logo} alt="" />
-                        </div>
+                {draftedPosts.length &&
+                  draftedPosts.map((post, index) => {
+                    const imageUrl = post?.media?.[0]?.media_url;
+                    return (
+                      <Card
+                        key={`__drafted_posts_${index}__`}
+                        className="p-2 border-0 shadow mb-3"
+                      >
+                        <div className="d-flex justify-content-between">
+                          <div className="d-flex">
+                            <div className="post_logo">
+                              <img src={logo} alt="" />
+                            </div>
 
+                            <div>
+                              <p className="post_title">
+                                {post?.title} <br />{" "}
+                                <span className="post_time">1h</span>
+                              </p>
+                            </div>
+                          </div>
+                          <IconButton onClick={() => {
+                            setCurrentDraftId(post.id);
+                            setDeleteModelFlag(true);
+                          }}>
+                            <IoClose className="fs-3" />
+                          </IconButton>
+                        </div>
                         <div>
-                          <p className="post_title">
-                            {latestDraftedPost?.title} <br />{" "}
-                            <span className="post_time">1h</span>
-                          </p>
+                          <p className="post_desc">{post.desc}</p>
                         </div>
-                      </div>
-
-                      <div>
-                        {/* <BsThreeDots className="fs-4 me-2" /> */}
-                        <IoClose className="fs-3" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="post_desc">{latestDraftedPost.desc}</p>
-                    </div>
-                    {(() => {
-                      const imageUrl = latestDraftedPost?.media?.[0]?.media_url;
-                      return (
-                        imageUrl && (
+                        {imageUrl && (
                           <div>
                             <img src={imageUrl} alt="" />
                             <hr />
                           </div>
-                        )
-                      );
-                    })()}
-
-                    <div className="d-flex justify-content-between">
-                      <Button className="continue_btn">Continue</Button>
-                    </div>
-                  </Card>
-                )}
+                        )}
+                        <div className="d-flex justify-content-between">
+                          <Button className="continue_btn">Continue</Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                {draftedPosts?.id && <></>}
               </div>
 
               <div>
-
                 {/* DAte picker */}
 
                 <Modal
