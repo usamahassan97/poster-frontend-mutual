@@ -69,7 +69,7 @@ const populateHashTags = (hashtags) => {
 const initiatePost = (data) => ({
   title: data?.title || "",
   desc: data?.desc || "",
-  hashtags: populateHashTags(data?.hashtags) || "#ABC",
+  hashtags: populateHashTags(data?.hashtags) || "#ABC, #XYZ",
 });
 
 const saveButtonCanBeEnabled = (post) => {
@@ -104,6 +104,11 @@ const Compose = ({ direction, ...args }) => {
       setDraftedPosts(payload.data);
     }
   };
+
+  useEffect(() => {
+    setPost(initiatePost(currentPost));
+  }, [currentPost]);
+
 
   useEffect(() => {
     fetchDraftedPosts();
@@ -243,6 +248,15 @@ const Compose = ({ direction, ...args }) => {
   const toggleDeletePostModal = () => {
     setDeleteModelFlag(!deleteModalFlag);
   };
+
+  const removeTags = (tagToRemove) => {
+    console.log(`Removing tag: ${tagToRemove}`)
+    const updatedHashtags = post.hashtags
+      .split(",")
+      .filter((_, index) => index !== tagToRemove)
+      .join(",");
+    setPost((prevPost) => ({ ...prevPost, hashtags: updatedHashtags }));
+  }
 
   return (
     <>
@@ -514,6 +528,7 @@ const Compose = ({ direction, ...args }) => {
                                   key={index}
                                 >
                                   <p className="mt-3">{hashtag}</p>
+                                  <p className="ms-1 mb-4 fs-6 fw-bold" style={{ cursor: "pointer" }} onClick={() => removeTags(index)}>x</p>
                                 </div>
                               </>
                             );
@@ -523,7 +538,6 @@ const Compose = ({ direction, ...args }) => {
                         ""
                       )}
                     </div>
-
                     {/* <Input
                       type="text"
                       name="hashtags"
@@ -534,6 +548,8 @@ const Compose = ({ direction, ...args }) => {
                     /> */}
                   </div>
                 </div>
+
+                {/* MEDIA IMPORT MODAL */}
 
                 <Modal
                   isOpen={importMediaModal}
@@ -565,17 +581,17 @@ const Compose = ({ direction, ...args }) => {
                   </Row>
 
                   <Row className="p-4">
-                    <Col md={5}>
+                    <Col md={4} >
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                     </Col>
-                    <Col md={2}>
+                    <Col md={4}>
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                     </Col>
-                    <Col md={5}>
+                    <Col md={4}>
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
                       <img src={upload} alt="" className="media_data mt-2" />
