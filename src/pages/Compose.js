@@ -38,7 +38,12 @@ import { FaRegComment, FaWhatsapp } from "react-icons/fa";
 import { BsEmojiSmile, BsFilterLeft, BsThreeDots } from "react-icons/bs";
 import { TiCameraOutline } from "react-icons/ti";
 import { FaPlus } from "react-icons/fa6";
-import { createPost, deletePost, generateCaption, getPosts } from "../apis/post";
+import {
+  createPost,
+  deletePost,
+  generateCaption,
+  getPosts,
+} from "../apis/post";
 import DatePicker from "react-datepicker";
 import "react-time-picker/dist/TimePicker.css";
 import { useNavigate } from "react-router-dom";
@@ -95,7 +100,6 @@ const Compose = ({ direction, ...args }) => {
 
   const fetchDraftedPosts = async () => {
     const { payload } = await dispatch(getPosts({ status: "draft" }));
-    console.log("payload:", payload);
     if (payload.success && payload.data?.length) {
       setDraftedPosts(payload.data);
     }
@@ -234,11 +238,11 @@ const Compose = ({ direction, ...args }) => {
     setTooltipOpen(!tooltipOpen);
   };
 
-  const handleImportMedia = () => { };
-  
+  const handleImportMedia = () => {};
+
   const toggleDeletePostModal = () => {
     setDeleteModelFlag(!deleteModalFlag);
-  }
+  };
 
   return (
     <>
@@ -261,11 +265,11 @@ const Compose = ({ direction, ...args }) => {
             color="danger"
             onClick={async () => {
               if (currentDraftId <= 0) return;
-              const { payload: { success, data } } = await dispatch(deletePost(currentDraftId));
+              const {
+                payload: { success, data },
+              } = await dispatch(deletePost(currentDraftId));
               if (success) {
-                setDraftedPosts(
-                  draftedPosts?.filter?.((x) => x?.id !== data)
-                );
+                setDraftedPosts(draftedPosts?.filter?.((x) => x?.id !== data));
                 setCurrentDraftId(0);
                 setDeleteModelFlag(false);
               }
@@ -744,10 +748,12 @@ const Compose = ({ direction, ...args }) => {
                               </p>
                             </div>
                           </div>
-                          <IconButton onClick={() => {
-                            setCurrentDraftId(post.id);
-                            setDeleteModelFlag(true);
-                          }}>
+                          <IconButton
+                            onClick={() => {
+                              setCurrentDraftId(post.id);
+                              setDeleteModelFlag(true);
+                            }}
+                          >
                             <IoClose className="fs-3" />
                           </IconButton>
                         </div>
@@ -761,12 +767,24 @@ const Compose = ({ direction, ...args }) => {
                           </div>
                         )}
                         <div className="d-flex justify-content-between">
-                          <Button className="continue_btn">Continue</Button>
+                          <Button
+                            className="continue_btn"
+                            onClick={() => {
+                              setPost(post);
+                              setImageSrc(
+                                post.media.map((x) => ({
+                                  src: x.media_url,
+                                  type: x.media_type + "/jpeg",
+                                }))
+                              );
+                            }}
+                          >
+                            Continue
+                          </Button>
                         </div>
                       </Card>
                     );
                   })}
-                {draftedPosts?.id && <></>}
               </div>
 
               <div>
