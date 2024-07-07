@@ -93,7 +93,7 @@ const Compose = ({ direction, ...args }) => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [isFormComplete, setIsFormComplete] = useState(false);
   const [titleError, setTitleError] = useState("");
-  const [draftedPosts, setDraftedPosts] = useState({});
+  const [draftedPosts, setDraftedPosts] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [deleteModalFlag, setDeleteModelFlag] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState(0);
@@ -108,7 +108,6 @@ const Compose = ({ direction, ...args }) => {
   useEffect(() => {
     setPost(initiatePost(currentPost));
   }, [currentPost]);
-
 
   useEffect(() => {
     fetchDraftedPosts();
@@ -250,13 +249,12 @@ const Compose = ({ direction, ...args }) => {
   };
 
   const removeTags = (tagToRemove) => {
-    console.log(`Removing tag: ${tagToRemove}`)
     const updatedHashtags = post.hashtags
       .split(",")
       .filter((_, index) => index !== tagToRemove)
       .join(",");
     setPost((prevPost) => ({ ...prevPost, hashtags: updatedHashtags }));
-  }
+  };
 
   return (
     <>
@@ -528,7 +526,13 @@ const Compose = ({ direction, ...args }) => {
                                   key={index}
                                 >
                                   <p className="mt-3">{hashtag}</p>
-                                  <p className="ms-1 mb-4 fs-6 fw-bold" style={{ cursor: "pointer" }} onClick={() => removeTags(index)}>x</p>
+                                  <p
+                                    className="ms-1 mb-4 fs-6 fw-bold"
+                                    style={{ cursor: "pointer" }}
+                                    onClick={() => removeTags(index)}
+                                  >
+                                    x
+                                  </p>
                                 </div>
                               </>
                             );
@@ -581,21 +585,19 @@ const Compose = ({ direction, ...args }) => {
                   </Row>
 
                   <Row className="p-4">
-                    <Col md={4} >
-                      <img src={upload} alt="" className="media_data mt-2" />
-                      <img src={upload} alt="" className="media_data mt-2" />
-                      <img src={upload} alt="" className="media_data mt-2" />
-                    </Col>
-                    <Col md={4}>
-                      <img src={upload} alt="" className="media_data mt-2" />
-                      <img src={upload} alt="" className="media_data mt-2" />
-                      <img src={upload} alt="" className="media_data mt-2" />
-                    </Col>
-                    <Col md={4}>
-                      <img src={upload} alt="" className="media_data mt-2" />
-                      <img src={upload} alt="" className="media_data mt-2" />
-                      <img src={upload} alt="" className="media_data mt-2" />
-                    </Col>
+                    {posts
+                      .map((p) => p.media)
+                      .flat(1)
+                      .map((x, idx) => (
+                        <Col md={4}>
+                          <img
+                            key={`__image${idx}___`}
+                            src={x?.media_url || upload}
+                            alt=""
+                            className="media_data mt-2"
+                          />
+                        </Col>
+                      ))}
                   </Row>
                 </Modal>
 
@@ -610,7 +612,10 @@ const Compose = ({ direction, ...args }) => {
                       <Col md={6} className="d-flex justify-content-center">
                         <div
                           className="upload_btns_bg"
-                          onClick={toggleImportMedia}
+                          onClick={() => {
+                            toggleImportMedia();
+                            dispatch(getPosts());
+                          }}
                         >
                           <PiVideo className="fs-4 mb-2" />
                           <div>
@@ -650,7 +655,7 @@ const Compose = ({ direction, ...args }) => {
                 </div> */}
 
                 <div className="mt-4 d-flex justify-content-center align-items-center">
-                  {post.title && (
+                  {post.title && post?.status !== "draft" && (
                     <Button
                       outline={true}
                       onClick={() =>
@@ -661,7 +666,6 @@ const Compose = ({ direction, ...args }) => {
                           platforms: ["facebook"],
                           status: "draft",
                           files: files,
-                          scheduled_at: selectedDay,
                         })
                       }
                       className="me-3"
